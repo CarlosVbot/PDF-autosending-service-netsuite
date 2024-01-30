@@ -89,11 +89,3 @@ function delayPromise() {
       }, 5000);
     });
   }
-
-function renombrar(){
-    try {
-        
-    } catch (error) {
-        console.log(error);
-    }
-}
