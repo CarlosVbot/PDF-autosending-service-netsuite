@@ -1,0 +1,11 @@
+{
+    "Directorio": "C:/",
+    "Netsuite_acceso":{
+        "accountId": "accountId",
+        "tokenKey": "tokenKey",
+        "tokenSecret": "tokenSecret",
+        "consumerKey": "consumerKey",
+        "consumerSecret": "consumerSecret"
+    },
+    "url": "https://"
+}
