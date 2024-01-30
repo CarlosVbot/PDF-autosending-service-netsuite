@@ -1,2 +1,3 @@
 # PDF-autosending-service-netsuite
-service that sends a pdf to netsuite automatically when it is moved or appears in a directory
+This script sends the content of an automatically scanned PDF to netsuite, where a reslet receives it and generates a PDF with the content
+
