@@ -1,10 +1,12 @@
 const fs = require('fs');
 const nsrestlet = require('nsrestlet');
 
+let procesandoArchivos = false;
+const colaArchivos = [];
+
 function vigilarDirectorio(config) {
     try {
         console.log(`Vigilando el directorio: ${config.Directorio}`);
-
         fs.watch(config.Directorio, (evento, nombreArchivo) => {
             delayPromise().then(() => {
                 if (evento === 'rename') {
@@ -12,9 +14,14 @@ function vigilarDirectorio(config) {
                     var rutaArchivo = config.Directorio +'/'+ nombreArchivo
                     console.log('rutaArchivo '+rutaArchivo)
                     var contenidoPDF = leerPDFyCodificarBase64(rutaArchivo);
-                    console.log('contenidoPDF '+contenidoPDF)
-                    if(contenidoPDF){
-                        conectarNS(contenidoPDF,nombreArchivo,config);
+                    //console.log('contenidoPDF '+contenidoPDF)
+                    colaArchivos.push({
+                            contenidoPDF,
+                            nombreArchivo,
+                            config
+                        });
+                    if (!procesandoArchivos) {
+                        procesarColaArchivos();
                     }
                 }
               });
@@ -55,37 +62,59 @@ function leerPDFyCodificarBase64(rutaPDF) {
 }
 
 
-function conectarNS(contenidoPDF,nombreArchivo,config){
-    var accountSettings = config.Netsuite_acceso;
-    var urlSettings = {
-        url: config.url
-    }
+function conectarNS(contenidoPDF, nombreArchivo, config) {
+    return new Promise((resolve, reject) => {
+        var accountSettings = config.Netsuite_acceso;
+        var urlSettings = {
+            url: config.url
+        }
 
-    var myInvoices = nsrestlet.createLink(accountSettings, urlSettings)
-    var data = {
-        "encoding": "UTF-8",
-        "function": "fileCreate",
-        "folderID": 969,
-        "contents": contenidoPDF,
-        "isOnline": true,
-        "description": "XD",
-        "name": nombreArchivo,
-        "fileType": "PDF"
-      }
-    myInvoices.post(data).then(function(body) {
-        console.log(body);
-    })
-    .catch(function(error) {
-        console.log(error);
+        var myInvoices = nsrestlet.createLink(accountSettings, urlSettings)
+        var data = {
+            "encoding": "UTF-8",
+            "function": "fileCreate",
+            "folderID": 969,
+            "contents": contenidoPDF,
+            "isOnline": true,
+            "description": "XD",
+            "name": nombreArchivo,
+            "fileType": "PDF"
+        }
+
+        myInvoices.post(data).then(function (body) {
+            console.log(body);
+            resolve(body); 
+        })
+            .catch(function (error) {
+                console.log(error);
+                reject(error); 
+            });
     });
-
-    
 }
+
 
 function delayPromise() {
     return new Promise(resolve => {
       setTimeout(() => {
         resolve(); 
-      }, 5000);
+      }, 8000);
     });
   }
+
+
+  function procesarColaArchivos() {
+    if (colaArchivos.length > 0) {
+        procesandoArchivos = true;
+        const archivo = colaArchivos.shift();
+        conectarNS(archivo.contenidoPDF, archivo.nombreArchivo, archivo.config)
+            .then(() => {
+                procesarColaArchivos();
+            })
+            .catch((error) => {
+                console.error(`Error al procesar archivo ${archivo.nombreArchivo}: ${error}`);
+                procesarColaArchivos();
+            });
+    } else {
+        procesandoArchivos = false;
+    }
+}
